@@ -1,14 +1,12 @@
 <p align="right">English | <a href="https://github.com/linyows/git-untracked/blob/main/README.ja.md">日本語</a></p>
 
-<p align="center"><br><br><br><br>
+<br><br><br><br>
 <h1>git-untracked</h1>
-</p>
 
-<p align="center">
-  <strong>git-untracked</strong> brings your untracked files to every <a href="https://git-scm.com/docs/git-worktree">git worktree</a>.
-</p><br><br><br><br>
+<strong>git-untracked</strong> brings your untracked files to every <a href="https://git-scm.com/docs/git-worktree">git worktree</a>.
+<br><br><br><br>
 
-<p align="center">
+
   <a href="https://github.com/linyows/git-untracked/actions/workflows/build.yml">
     <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/linyows/git-untracked/build.yml?branch=main&style=for-the-badge&labelColor=666666">
   </a>
@@ -21,7 +19,6 @@
   <a href="https://github.com/linyows/git-untracked/blob/main/LICENSE">
     <img src="http://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&labelColor=666666&color=DDDDDD" alt="MIT License">
   </a>
-</p>
 
 A new worktree created by `git worktree add` contains only tracked files, so `.env`, development certificates and `node_modules` have to be prepared again every time.
 git-untracked copies, symlinks or clones them from the main worktree according to a `.gituntracked` file, and can do it automatically on `git worktree add`.
