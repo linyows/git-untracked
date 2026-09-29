@@ -1,8 +1,7 @@
 <p align="right">English | <a href="https://github.com/linyows/git-untracked/blob/main/README.ja.md">日本語</a></p>
 
 <p align="center"><br><br><br><br>
-:deciduous_tree:<br>
-<b>git-untracked</b>
+<h1>git-untracked</h1>
 </p>
 
 <p align="center">
