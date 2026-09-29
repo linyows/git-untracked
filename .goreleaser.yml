@@ -36,9 +36,7 @@ brews:
   - repository:
       owner: linyows
       name: homebrew-git-untracked
-      token: '{{ envOrDefault "HOMEBREW_TAP_GITHUB_TOKEN" "" }}'
-    # Skip the tap until the token is configured, so releases do not fail.
-    skip_upload: '{{ if envOrDefault "HOMEBREW_TAP_GITHUB_TOKEN" "" }}false{{ else }}true{{ end }}'
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: https://github.com/linyows/git-untracked
     description: Propagate untracked files from the main worktree to other git worktrees.
     license: "MIT"
