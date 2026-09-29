@@ -1,0 +1,50 @@
+version: 2
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - id: git-untracked
+    main: ./cmd/git-untracked
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+archives:
+  - name_template: >-
+      {{ .ProjectName }}_{{ .Os }}_
+      {{- if eq .Arch "386" }}i386
+      {{- else if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - LICENSE
+      - README.md
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  version_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+brews:
+  - repository:
+      owner: linyows
+      name: homebrew-git-untracked
+      token: '{{ envOrDefault "HOMEBREW_TAP_GITHUB_TOKEN" "" }}'
+    # Skip the tap until the token is configured, so releases do not fail.
+    skip_upload: '{{ if envOrDefault "HOMEBREW_TAP_GITHUB_TOKEN" "" }}false{{ else }}true{{ end }}'
+    homepage: https://github.com/linyows/git-untracked
+    description: Propagate untracked files from the main worktree to other git worktrees.
+    license: "MIT"
+    dependencies:
+      - name: git
+    install: |
+      bin.install "git-untracked"
+    test: |
+      system "#{bin}/git-untracked version"
