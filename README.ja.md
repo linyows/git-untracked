@@ -1,15 +1,11 @@
 <p align="right"><a href="https://github.com/linyows/git-untracked/blob/main/README.md">English</a> | 日本語</p>
 
-<p align="center"><br><br><br><br>
-:deciduous_tree:<br>
-<b>git-untracked</b>
-</p>
+<br><br><br><br>
+<h1>git-untracked</h1>
 
-<p align="center">
   <strong>git-untracked</strong>は、untrackedなファイルをすべての<a href="https://git-scm.com/docs/git-worktree">git worktree</a>へ届けるgitサブコマンドです。
-</p><br><br><br><br>
+<br><br><br><br>
 
-<p align="center">
   <a href="https://github.com/linyows/git-untracked/actions/workflows/build.yml">
     <img alt="GitHub Workflow Status" src="https://img.shields.io/github/actions/workflow/status/linyows/git-untracked/build.yml?branch=main&style=for-the-badge&labelColor=666666">
   </a>
@@ -22,7 +18,6 @@
   <a href="https://github.com/linyows/git-untracked/blob/main/LICENSE">
     <img src="http://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge&labelColor=666666&color=DDDDDD" alt="MIT License">
   </a>
-</p>
 
 `git worktree add`で作ったworktreeにはtrackedなファイルしかありません。
 そのため、`.env`や開発用の証明書、`node_modules`を、worktreeを作るたびに用意し直すことになります。
