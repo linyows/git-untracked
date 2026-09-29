@@ -1,0 +1,23 @@
+name: Build by matrix
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    tags:
+      - v*
+    branches:
+      - main
+jobs:
+  build:
+    name: Build
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: go.mod
+    - name: Go build
+      run: go build ./cmd/git-untracked

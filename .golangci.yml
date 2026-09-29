@@ -1,0 +1,41 @@
+version: "2"
+linters:
+  enable:
+    - errorlint
+    - gosec
+    - misspell
+    - revive
+  settings:
+    errcheck:
+      check-type-assertions: true
+    misspell:
+      locale: US
+    revive:
+      rules:
+        - name: unexported-return
+          disabled: true
+        - name: exported
+          disabled: false
+  exclusions:
+    generated: lax
+    rules:
+      - linters:
+          - gosec
+        text: "G(101|204|306):"
+        path: "_test\\.go$"
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
