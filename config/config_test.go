@@ -47,6 +47,16 @@ rules:
 	}
 }
 
+func TestParseDebug(t *testing.T) {
+	c, err := Parse([]byte("version: 1\ndebug: true\nrules: []\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !c.Debug {
+		t.Error("debug = false")
+	}
+}
+
 func TestParseErrors(t *testing.T) {
 	tests := []struct {
 		name string
@@ -140,6 +150,13 @@ func TestMerge(t *testing.T) {
 		if m.Rules[i] != want[i] {
 			t.Errorf("rules[%d] = %+v, want %+v", i, m.Rules[i], want[i])
 		}
+	}
+
+	if m.Debug {
+		t.Error("debug should be off")
+	}
+	if !Merge(shared, &Config{Version: 1, Debug: true}).Debug {
+		t.Error("private debug should enable debug")
 	}
 
 	if got := Merge(nil, nil); got == nil || len(got.Rules) != 0 {

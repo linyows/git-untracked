@@ -76,6 +76,7 @@ func (r Rule) Pattern() string {
 // Config is the content of a .gituntracked file.
 type Config struct {
 	Version  int      `yaml:"version"`
+	Debug    bool     `yaml:"debug,omitempty"`
 	Defaults Defaults `yaml:"defaults,omitempty"`
 	Rules    []Rule   `yaml:"rules"`
 }
@@ -171,13 +172,15 @@ func validateLink(v LinkMode) error {
 }
 
 // Merge overlays private onto shared. Rules with the same path are replaced
-// in place, new rules are appended. Either argument may be nil.
+// in place, new rules are appended. Debug is enabled when either enables it.
+// Either argument may be nil.
 func Merge(shared, private *Config) *Config {
 	out := &Config{Version: CurrentVersion}
 	for _, c := range []*Config{shared, private} {
 		if c == nil {
 			continue
 		}
+		out.Debug = out.Debug || c.Debug
 		if c.Defaults.Conflict != "" {
 			out.Defaults.Conflict = c.Defaults.Conflict
 		}
@@ -228,6 +231,7 @@ func (c *Config) Resolved() []Rule {
 const Template = `# git-untracked: files propagated from the main worktree to other worktrees.
 # See https://github.com/linyows/git-untracked
 version: 1
+# debug: true       # log to $GIT_COMMON_DIR/git-untracked.log
 defaults:
   conflict: skip    # skip | overwrite | backup
   link: relative    # relative | absolute

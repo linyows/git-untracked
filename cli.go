@@ -42,6 +42,7 @@ Commands:
   clean             Remove files created by sync (unmodified ones only)
   install-hook      Run sync automatically on 'git worktree add'
   uninstall-hook    Remove the hook installed by install-hook
+  post-checkout     Entry point of the post-checkout hook
   version           Print the version
 
 Run 'git untracked <command> -h' for command options.
@@ -57,11 +58,21 @@ func RunCLI(env Env) int {
 		}
 		env.Dir = wd
 	}
-	c := &cli{env: env}
 	if len(env.Args) == 0 {
 		fmt.Fprintf(env.Err, usage, config.FileName)
 		return ExitErr
 	}
+	var d *debugLog
+	if on, common := debugEnabled(env.Dir); on {
+		d = startDebug(&env, common)
+	}
+	code := (&cli{env: env, debug: d}).run()
+	d.close(code)
+	return code
+}
+
+func (c *cli) run() int {
+	env := c.env
 	cmd, args := env.Args[0], env.Args[1:]
 	var err error
 	switch cmd {
@@ -77,6 +88,8 @@ func RunCLI(env Env) int {
 		err = c.installHook(args)
 	case "uninstall-hook":
 		err = c.uninstallHook(args)
+	case "post-checkout":
+		err = c.postCheckout(args)
 	case "version", "-v", "--version":
 		fmt.Fprintf(env.Out, "git-untracked %s (%s, %s)\n", env.Version, env.Commit, env.Date)
 	case "help", "-h", "--help":
@@ -97,7 +110,8 @@ func RunCLI(env Env) int {
 }
 
 type cli struct {
-	env Env
+	env   Env
+	debug *debugLog
 }
 
 type flags struct {
@@ -221,9 +235,21 @@ func (c *cli) sync(args []string) error {
 	if err != nil {
 		return err
 	}
-	return c.each(repo, wts, rules, false, func(it Item) (Outcome, string, error) {
+	err = c.each(repo, wts, rules, false, func(it Item) (Outcome, string, error) {
 		return Apply(it, Options{Force: f.force, DryRun: f.dryRun})
 	}, f)
+	if err != nil || f.dryRun {
+		return err
+	}
+	for _, w := range wts {
+		if w.Main {
+			continue
+		}
+		if err := markSynced(w); err != nil {
+			c.debug.printf("cannot mark %s as synced: %s", w.Path, err)
+		}
+	}
+	return nil
 }
 
 func (c *cli) clean(args []string) error {
@@ -320,21 +346,10 @@ func (c *cli) line(state string, it Item, note string) {
 	fmt.Fprintln(c.env.Out, s)
 }
 
-// hooksDir returns the directory git runs hooks from.
-func hooksDir(repo *Repo) string {
-	main := repo.Main().Path
-	if p := GitConfig(main, "core.hooksPath"); p != "" {
-		if strings.HasPrefix(p, "~/") {
-			if home, err := os.UserHomeDir(); err == nil {
-				p = filepath.Join(home, p[2:])
-			}
-		}
-		if !filepath.IsAbs(p) {
-			p = filepath.Join(main, p)
-		}
-		return p
-	}
-	return filepath.Join(repo.CommonDir, "hooks")
+// hooksDir returns the directory git runs hooks from. git resolves
+// core.hooksPath, including `~` and paths relative to the worktree root.
+func hooksDir(repo *Repo) (string, error) {
+	return git(repo.Main().Path, "rev-parse", "--path-format=absolute", "--git-path", "hooks")
 }
 
 // hookManager detects a hook manager that would own post-checkout.
@@ -363,7 +378,7 @@ const lefthookGuide = `lefthook detected. Add the following to your lefthook con
 post-checkout:
   commands:
     git-untracked:
-      run: case "{1}" in *[!0]*) ;; *) if [ "{3}" = "1" ]; then git untracked sync || :; fi ;; esac
+      run: git untracked post-checkout {1} {2} {3} || true
 
 Or run 'git untracked install-hook --force' to install into %s anyway
 (lefthook may overwrite it on 'lefthook install').
@@ -378,7 +393,10 @@ func (c *cli) installHook(args []string) error {
 	if err != nil {
 		return err
 	}
-	dir := hooksDir(repo)
+	dir, err := hooksDir(repo)
+	if err != nil {
+		return err
+	}
 	if !f.force {
 		switch hookManager(repo) {
 		case "husky":
@@ -406,7 +424,10 @@ func (c *cli) uninstallHook(args []string) error {
 	if err != nil {
 		return err
 	}
-	dir := hooksDir(repo)
+	dir, err := hooksDir(repo)
+	if err != nil {
+		return err
+	}
 	res, err := hook.Uninstall(dir, f.dryRun)
 	if err != nil {
 		return err
