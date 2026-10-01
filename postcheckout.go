@@ -76,8 +76,11 @@ func (c *cli) postCheckout(args []string) error {
 	if err != nil {
 		return err
 	}
-	if ok, _ := shouldSync(args[0], args[1], args[2], w.Main, !w.Main && synced(w)); !ok {
+	ok, reason := shouldSync(args[0], args[1], args[2], w.Main, !w.Main && synced(w))
+	if !ok {
+		c.debug.printf("post-checkout: skip (%s)", reason)
 		return nil
 	}
+	c.debug.printf("post-checkout: sync (%s)", reason)
 	return c.sync(nil)
 }

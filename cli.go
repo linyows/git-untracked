@@ -58,11 +58,21 @@ func RunCLI(env Env) int {
 		}
 		env.Dir = wd
 	}
-	c := &cli{env: env}
 	if len(env.Args) == 0 {
 		fmt.Fprintf(env.Err, usage, config.FileName)
 		return ExitErr
 	}
+	var d *debugLog
+	if on, common := debugEnabled(env.Dir); on {
+		d = startDebug(&env, common)
+	}
+	code := (&cli{env: env, debug: d}).run()
+	d.close(code)
+	return code
+}
+
+func (c *cli) run() int {
+	env := c.env
 	cmd, args := env.Args[0], env.Args[1:]
 	var err error
 	switch cmd {
@@ -100,7 +110,8 @@ func RunCLI(env Env) int {
 }
 
 type cli struct {
-	env Env
+	env   Env
+	debug *debugLog
 }
 
 type flags struct {
@@ -234,8 +245,9 @@ func (c *cli) sync(args []string) error {
 		if w.Main {
 			continue
 		}
-		// Best effort: a missing marker only means the hook may sync again.
-		_ = markSynced(w)
+		if err := markSynced(w); err != nil {
+			c.debug.printf("cannot mark %s as synced: %s", w.Path, err)
+		}
 	}
 	return nil
 }

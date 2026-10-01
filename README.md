@@ -152,6 +152,20 @@ Run `install-hook` again after upgrading from a version that wrote the logic int
 When husky or lefthook is detected, `install-hook` prints the snippet to add to their configuration instead.
 Use `--force` to install into the hooks directory anyway.
 
+Debug
+--
+
+When the hook seems to do nothing, enable debug logging in `.gituntracked`, or in `.git/info/gituntracked` to keep it to yourself.
+
+```yaml
+version: 1
+debug: true
+```
+
+Every command then appends its arguments, working directory, `PATH`, executable, `GIT_*` environment variables, the hook's decision, its output and the exit code to `.git/git-untracked.log`, and prints the same `debug:` lines to stderr.
+The log is useful when a GUI tool creates worktrees and the hook's output is not visible.
+Setting `GIT_UNTRACKED_DEBUG=1` enables it as well, even when the config file cannot be loaded.
+
 License
 --
 

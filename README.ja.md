@@ -158,6 +158,22 @@ hookに判定処理を直接書いていた以前のバージョンから更新�
 huskyやlefthookを検出した場合、`install-hook`はhookを設置せず、それぞれの設定に追加する内容を表示します。
 `--force`を付けると、hookのディレクトリへそのまま設置します。
 
+デバッグ
+--
+
+hookが動いていないように見えるときは、`.gituntracked`でデバッグログを有効にします。
+自分の環境だけで有効にしたい場合は、`.git/info/gituntracked`に書きます。
+
+```yaml
+version: 1
+debug: true
+```
+
+有効にすると、各コマンドが引数、作業ディレクトリ、`PATH`、実行ファイル、`GIT_*`環境変数、hookの判定結果、出力、終了コードを`.git/git-untracked.log`に追記します。
+同じ内容は`debug:`付きでstderrにも出力します。
+GUIツールがworktreeを作り、hookの出力が見えない場合に役立ちます。
+環境変数`GIT_UNTRACKED_DEBUG=1`でも有効にできます。こちらは設定ファイルを読み込めない場合にも使えます。
+
 ライセンス
 --
 
