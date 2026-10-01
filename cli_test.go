@@ -287,6 +287,38 @@ func TestHookOnWorktreeAdd(t *testing.T) {
 	}
 }
 
+func TestHooksDir(t *testing.T) {
+	f := newFixture(t, "")
+	home, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HOME", home)
+	repo, err := OpenRepo(f.wt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		hooksPath string
+		want      string
+	}{
+		{"", filepath.Join(f.main, ".git", "hooks")},
+		{".husky/_", filepath.Join(f.main, ".husky", "_")},
+		{"~/hooks", filepath.Join(home, "hooks")},
+		{"/abs/hooks", "/abs/hooks"},
+	}
+	for _, tt := range tests {
+		// The unset case comes first, so there is nothing to unset.
+		if tt.hooksPath != "" {
+			run(t, f.main, "git", "config", "core.hooksPath", tt.hooksPath)
+		}
+		got, err := hooksDir(repo)
+		if err != nil || got != tt.want {
+			t.Errorf("core.hooksPath=%q: got %q (%v), want %q", tt.hooksPath, got, err, tt.want)
+		}
+	}
+}
+
 func TestInstallHookDetectsManagers(t *testing.T) {
 	f := newFixture(t, "")
 	writeFile(t, filepath.Join(f.main, "lefthook.yml"), "")
