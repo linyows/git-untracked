@@ -274,16 +274,76 @@ func TestHookOnWorktreeAdd(t *testing.T) {
 		t.Errorf(".env in new worktree = %q", got)
 	}
 
-	// Switching branches in an existing worktree must not trigger sync.
+	// Switching branches in an existing worktree must not trigger sync, even
+	// when the new branch points at the same commit.
 	os.Remove(filepath.Join(wt2, ".env"))
 	run(t, wt2, "git", "checkout", "-q", "-b", "feat3")
 	if _, err := os.Lstat(filepath.Join(wt2, ".env")); !os.IsNotExist(err) {
 		t.Error("sync ran on a normal checkout")
 	}
 
+	// A worktree created without checkout, as sparse-checkout setups do, is
+	// synced on its first checkout.
+	wt3 := filepath.Join(filepath.Dir(f.main), "wt3")
+	run(t, f.main, "git", "worktree", "add", "-q", "--no-checkout", wt3, "-b", "feat4")
+	if _, err := os.Lstat(filepath.Join(wt3, ".env")); !os.IsNotExist(err) {
+		t.Error("sync ran before checkout")
+	}
+	run(t, wt3, "git", "sparse-checkout", "init", "--cone")
+	run(t, wt3, "git", "sparse-checkout", "set", "--", "config")
+	run(t, wt3, "git", "checkout", "-q", "feat4")
+	if got := f.read(filepath.Join(wt3, ".env")); got != "SECRET=1\n" {
+		t.Errorf(".env in sparse worktree = %q", got)
+	}
+	os.Remove(filepath.Join(wt3, ".env"))
+	run(t, wt3, "git", "checkout", "-q", "-b", "feat5")
+	if _, err := os.Lstat(filepath.Join(wt3, ".env")); !os.IsNotExist(err) {
+		t.Error("sync ran again on a synced sparse worktree")
+	}
+
 	out, code = f.cli(f.main, "uninstall-hook")
 	if code != 0 || !strings.Contains(out, "deleted") {
 		t.Errorf("uninstall (%d):\n%s", code, out)
+	}
+}
+
+func TestSyncMarksWorktree(t *testing.T) {
+	f := newFixture(t, defaultRules)
+	w := Worktree{Path: f.wt}
+	if synced(w) {
+		t.Fatal("marked before sync")
+	}
+	f.cli(f.wt, "sync", "--dry-run")
+	if synced(w) {
+		t.Error("dry-run marked the worktree")
+	}
+	f.cli(f.wt, "sync")
+	if !synced(w) {
+		t.Error("sync did not mark the worktree")
+	}
+	if _, err := os.Stat(filepath.Join(f.main, ".git", SyncedMarker)); !os.IsNotExist(err) {
+		t.Error("main worktree must not be marked")
+	}
+}
+
+func TestPostCheckout(t *testing.T) {
+	f := newFixture(t, defaultRules)
+	zero := strings.Repeat("0", 40)
+	head := strings.TrimSpace(run(t, f.wt, "git", "rev-parse", "HEAD"))
+
+	if out, code := f.cli(f.wt, "post-checkout", zero, head); code == 0 {
+		t.Errorf("wrong number of args should fail:\n%s", out)
+	}
+	if out, code := f.cli(f.main, "post-checkout", zero, head, "1"); code != 0 || strings.Contains(out, "created") {
+		t.Errorf("main (%d):\n%s", code, out)
+	}
+	out, code := f.cli(f.wt, "post-checkout", zero, head, "1")
+	if code != 0 || strings.Count(out, "created") != 5 {
+		t.Fatalf("new worktree (%d):\n%s", code, out)
+	}
+	os.Remove(filepath.Join(f.wt, ".env"))
+	if out, _ := f.cli(f.wt, "post-checkout", head, head, "1"); strings.Contains(out, "created") {
+		t.Errorf("synced worktree was synced again:\n%s", out)
 	}
 }
 

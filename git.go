@@ -107,6 +107,11 @@ func Toplevel(dir string) (string, error) {
 	return realpath(out)
 }
 
+// gitDir returns the private git dir of the worktree at dir.
+func gitDir(dir string) (string, error) {
+	return git(dir, "rev-parse", "--absolute-git-dir")
+}
+
 // GitConfig returns the value of key, or "" when it is unset.
 func GitConfig(dir, key string) string {
 	out, err := git(dir, "config", "--get", key)

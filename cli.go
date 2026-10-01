@@ -42,6 +42,7 @@ Commands:
   clean             Remove files created by sync (unmodified ones only)
   install-hook      Run sync automatically on 'git worktree add'
   uninstall-hook    Remove the hook installed by install-hook
+  post-checkout     Entry point of the post-checkout hook
   version           Print the version
 
 Run 'git untracked <command> -h' for command options.
@@ -77,6 +78,8 @@ func RunCLI(env Env) int {
 		err = c.installHook(args)
 	case "uninstall-hook":
 		err = c.uninstallHook(args)
+	case "post-checkout":
+		err = c.postCheckout(args)
 	case "version", "-v", "--version":
 		fmt.Fprintf(env.Out, "git-untracked %s (%s, %s)\n", env.Version, env.Commit, env.Date)
 	case "help", "-h", "--help":
@@ -221,9 +224,20 @@ func (c *cli) sync(args []string) error {
 	if err != nil {
 		return err
 	}
-	return c.each(repo, wts, rules, false, func(it Item) (Outcome, string, error) {
+	err = c.each(repo, wts, rules, false, func(it Item) (Outcome, string, error) {
 		return Apply(it, Options{Force: f.force, DryRun: f.dryRun})
 	}, f)
+	if err != nil || f.dryRun {
+		return err
+	}
+	for _, w := range wts {
+		if w.Main {
+			continue
+		}
+		// Best effort: a missing marker only means the hook may sync again.
+		_ = markSynced(w)
+	}
+	return nil
 }
 
 func (c *cli) clean(args []string) error {
@@ -352,7 +366,7 @@ const lefthookGuide = `lefthook detected. Add the following to your lefthook con
 post-checkout:
   commands:
     git-untracked:
-      run: case "{1}" in *[!0]*) ;; *) if [ "{3}" = "1" ]; then git untracked sync || :; fi ;; esac
+      run: git untracked post-checkout {1} {2} {3} || true
 
 Or run 'git untracked install-hook --force' to install into %s anyway
 (lefthook may overwrite it on 'lefthook install').

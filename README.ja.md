@@ -122,6 +122,7 @@ git untracked status [--all] [<worktree>...]  各ルールの状態を表示
 git untracked clean [--all] [<worktree>...]   同期したもののうち、変更されていないものを削除
 git untracked install-hook [--force]          git worktree add の実行時に自動で同期
 git untracked uninstall-hook                  hookを削除
+git untracked post-checkout <old> <new> <flag> hookから呼ばれ、新しくcheckoutされたworktreeを同期
 git untracked version
 ```
 
@@ -143,9 +144,16 @@ hook
 --
 
 `install-hook`は、`core.hooksPath`または`.git/hooks`にある`post-checkout`へ、マーカーで囲んだブロックを追記します。
-gitが`post-checkout`に渡す旧HEADがすべて0になるのは、worktreeを作ったときだけです。
-そのため、通常のcheckoutでは同期は実行されません。
+ブロックは`git untracked post-checkout "$@"`を実行するだけです。
+このコマンドは、checkoutによって新しいworktreeにファイルが展開されたときに限り、カレントworktreeを同期します。
+
+- `git worktree add`でworktreeを作ると、gitは旧HEADとしてすべて0の値を渡します。
+- sparse checkoutを設定するツールのように`--no-checkout`でworktreeを作った場合、ファイルはその後の`git checkout`で展開されます。このときの旧HEADと新HEADは同じコミットです。まだ同期していないworktreeであれば、ここで同期します。
+
+同期すると、worktreeのgitディレクトリ（`.git/worktrees/<name>/`）に`git-untracked-synced`を作ります。
+そのため、ブランチの切り替えや2回目以降のcheckoutでは同期は実行されません。
 同期に失敗しても、`git worktree add`自体は失敗しません。
+hookに判定処理を直接書いていた以前のバージョンから更新した場合は、`install-hook`を再実行してください。
 
 huskyやlefthookを検出した場合、`install-hook`はhookを設置せず、それぞれの設定に追加する内容を表示します。
 `--force`を付けると、hookのディレクトリへそのまま設置します。

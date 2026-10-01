@@ -17,12 +17,11 @@ const (
 	shebang     = "#!/bin/sh"
 )
 
-// Block is the snippet inserted into the hook. post-checkout receives the
-// previous HEAD as $1, which is all zeros (SHA-1 or SHA-256) only for a
-// freshly created worktree, and $3=1 for a branch checkout. Failures are
-// swallowed so that `git worktree add` itself never fails because of us.
+// Block is the snippet inserted into the hook. Whether to sync is decided by
+// the post-checkout command, so that the hook itself stays trivial. Failures
+// are swallowed so that `git worktree add` itself never fails because of us.
 const Block = beginMarker + `
-case "$1" in *[!0]*) ;; *) if [ "$3" = "1" ]; then git untracked sync || :; fi ;; esac
+git untracked post-checkout "$@" || :
 ` + endMarker
 
 // Result describes what Install or Uninstall did.

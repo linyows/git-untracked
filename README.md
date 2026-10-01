@@ -120,6 +120,7 @@ git untracked status [--all] [<worktree>...]  Show the state of each rule
 git untracked clean [--all] [<worktree>...]   Remove synced files that are still unmodified
 git untracked install-hook [--force]          Sync automatically on `git worktree add`
 git untracked uninstall-hook                  Remove the hook
+git untracked post-checkout <old> <new> <flag> Called by the hook; syncs a newly checked out worktree
 git untracked version
 ```
 
@@ -139,7 +140,14 @@ Hook
 --
 
 `install-hook` appends a marked block to `post-checkout` in `core.hooksPath` or `.git/hooks`.
-Git runs `post-checkout` with an all-zero previous HEAD only when a worktree is created, so ordinary checkouts do not trigger a sync, and a failed sync never makes `git worktree add` fail.
+The block only runs `git untracked post-checkout "$@"`, which syncs the current worktree when the checkout populated a new one:
+
+- Git passes an all-zero previous HEAD when `git worktree add` creates a worktree.
+- A worktree created with `--no-checkout`, as tools that set up sparse checkout do, gets its files from a later `git checkout` whose previous and new HEAD are the same commit. It is synced then, unless it has already been synced.
+
+Each sync records `git-untracked-synced` in the worktree's git dir (`.git/worktrees/<name>/`), so branch switches and later checkouts never trigger a sync.
+A failed sync never makes `git worktree add` fail.
+Run `install-hook` again after upgrading from a version that wrote the logic into the hook itself.
 
 When husky or lefthook is detected, `install-hook` prints the snippet to add to their configuration instead.
 Use `--force` to install into the hooks directory anyway.
